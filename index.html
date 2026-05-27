@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ប្រព័ន្ធគ្រប់គ្រងសាលារៀន - គ្រប់ថ្នាក់</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Battambang', 'sans-serif'],
+                        moul: ['Moul', 'serif'],
+                    },
+                    colors: {
+                        emerald: { 800: '#065f46', 900: '#064e3b' },
+                        gold: { 400: '#fbbf24', 500: '#f59e0b' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- SheetJS for Excel Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #065f46; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #064e3b; }
+
+        @media print {
+            @page { margin: 15mm; size: A4; }
+            body { background: white; }
+            .no-print { display: none !important; }
+            .print-area { display: block !important; width: 100%; color: black; }
+            .print-break-inside-avoid { break-inside: avoid; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid black; padding: 8px; text-align: center; }
+        }
+        
+        @media screen { .print-area { display: none !important; } }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        #toast { transition: opacity 0.3s, transform 0.3s; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 h-screen flex overflow-hidden">
+
+    <!-- ================= LOGIN SCREEN ================= -->
+    <div id="login-screen" class="fixed inset-0 bg-emerald-900 flex items-center justify-center z-[100] no-print">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md transform transition-all">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 mx-auto bg-emerald-50 rounded-full flex items-center justify-center mb-4 border-2 border-gold-400 shadow-inner">
+                    <i class="fas fa-school text-4xl text-emerald-800"></i>
+                </div>
+                <h2 class="text-2xl font-moul text-emerald-800 leading-relaxed">សាលាសហគមន៍ច្បារច្រុះ</h2>
+                <p class="text-gray-500 mt-2">ប្រព័ន្ធគ្រប់គ្រងទិន្នន័យសាលារៀន (គ្រប់ថ្នាក់)</p>
+            </div>
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ឈ្មោះគណនី (Username)</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="text" id="login-username" class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="បញ្ចូលឈ្មោះគណនី">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">លេខសម្ងាត់ (Password)</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="password" id="login-password" class="w-full border border-gray-300 rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="បញ្ចូលលេខសម្ងាត់" onkeypress="if(event.key === 'Enter') handleLogin()">
+                    </div>
+                </div>
+                <p id="login-error" class="text-red-500 text-sm text-center hidden font-bold">ឈ្មោះគណនី ឬលេខសម្ងាត់មិនត្រឹមត្រូវទេ!</p>
+                <button onclick="handleLogin()" class="w-full bg-emerald-800 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg text-lg mt-2">
+                    ចូលប្រើប្រាស់ <i class="fas fa-sign-in-alt ml-2"></i>
+                </button>
+            </div>
+            <div class="mt-6 text-center text-xs text-gray-400">
+                <p>Admin: admin / 123 | Teacher: teacher / 123</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= APP UI ================= -->
+    <div id="app-container" class="flex w-full h-full no-print hidden">
+        
+        <!-- Sidebar -->
+        <aside class="w-64 bg-emerald-800 text-white flex flex-col shadow-xl z-10">
+            <div class="p-4 text-center border-b border-emerald-700">
+                <h1 class="font-moul text-sm text-gold-400 leading-relaxed mb-4">សាលាបឋមសិក្សាសហគមន៍<br>ច្បារជ្រោះ</h1>
+                
+                <!-- Class Selector -->
+                <div class="text-left bg-emerald-900 p-3 rounded-xl border border-emerald-700">
+                    <label class="text-xs text-emerald-300 mb-1 block font-bold">ជ្រើសរើសថ្នាក់រៀន៖</label>
+                    <div class="flex gap-2">
+                        <select id="class-selector" class="w-full bg-white text-emerald-900 border-none rounded px-2 py-1 text-sm outline-none font-bold" onchange="changeClass()">
+                            <!-- Options populated by JS -->
+                        </select>
+                        <button onclick="openModal('modal-add-class')" class="bg-gold-500 text-emerald-900 px-3 rounded hover:bg-gold-400 transition" title="បន្ថែមថ្នាក់ថ្មី">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto py-4 space-y-1 px-3" id="nav-menu">
+                <button onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl text-left hover:bg-emerald-700 transition-colors active-nav bg-emerald-900 text-gold-400 font-bold" data-target="dashboard">
+                    <i class="fas fa-chart-pie w-6"></i> ផ្ទាំងព័ត៌មានរួម
+                </button>
+                <button onclick="switchTab('students')" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl text-left hover:bg-emerald-700 transition-colors" data-target="students">
+                    <i class="fas fa-users w-6"></i> បញ្ជីឈ្មោះសិស្ស
+                </button>
+                <button onclick="switchTab('attendance')" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl text-left hover:bg-emerald-700 transition-colors" data-target="attendance">
+                    <i class="fas fa-calendar-check w-6"></i> វត្តមានប្រចាំថ្ងៃ
+                </button>
+                <button onclick="switchTab('monthly-grades')" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl text-left hover:bg-emerald-700 transition-colors" data-target="monthly-grades">
+                    <i class="fas fa-star w-6"></i> ពិន្ទុប្រចាំខែ
+                </button>
+                <button onclick="switchTab('semester-grades')" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl text-left hover:bg-emerald-700 transition-colors" data-target="semester-grades">
+                    <i class="fas fa-graduation-cap w-6"></i> ពិន្ទុប្រឡងឆមាស
+                </button>
+                <button onclick="switchTab('exam-builder')" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl text-left hover:bg-emerald-700 transition-colors" data-target="exam-builder">
+                    <i class="fas fa-file-signature w-6"></i> បង្កើតវិញ្ញាសាប្រឡង
+                </button>
+                <button onclick="switchTab('reports')" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl text-left hover:bg-emerald-700 transition-colors" data-target="reports">
+                    <i class="fas fa-chart-bar w-6"></i> របាយការណ៍ & លទ្ធផល
+                </button>
+                <button onclick="switchTab('settings')" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl text-left hover:bg-emerald-700 transition-colors" data-target="settings">
+                    <i class="fas fa-cog w-6"></i> រចនាសម្ព័ន្ធថ្នាក់
+                </button>
+                <!-- Admin Only Tab -->
+                <button id="nav-accounts" onclick="switchTab('accounts')" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl text-left hover:bg-emerald-700 transition-colors hidden" data-target="accounts">
+                    <i class="fas fa-user-shield w-6"></i> គណនីប្រើប្រាស់
+                </button>
+            </nav>
+            <div class="p-4 border-t border-emerald-700">
+                <div class="flex items-center gap-3 mb-4 px-2">
+                    <div class="w-8 h-8 bg-gold-500 rounded-full flex items-center justify-center text-emerald-900 font-bold">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-white" id="current-user-name">ឈ្មោះអ្នកប្រើ</p>
+                        <p class="text-xs text-emerald-300" id="current-user-role">តួនាទី</p>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" class="w-full bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition font-bold flex items-center justify-center gap-2">
+                    <i class="fas fa-sign-out-alt"></i> ចាកចេញ
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            
+            <!-- Empty State Overlay (If no class exists) -->
+            <div id="no-class-overlay" class="absolute inset-0 bg-gray-50 z-20 flex flex-col items-center justify-center hidden">
+                <i class="fas fa-chalkboard text-6xl text-gray-300 mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-500 mb-2">មិនទាន់មានថ្នាក់រៀននៅឡើយទេ</h2>
+                <p class="text-gray-400 mb-6">សូមបង្កើតថ្នាក់រៀនថ្មីមួយដើម្បីចាប់ផ្តើមប្រើប្រាស់ប្រព័ន្ធ។</p>
+                <button onclick="openModal('modal-add-class')" class="bg-emerald-800 text-white px-6 py-3 rounded-xl hover:bg-emerald-700 transition font-bold shadow-lg text-lg">
+                    <i class="fas fa-plus mr-2"></i> បង្កើតថ្នាក់ថ្មី
+                </button>
+            </div>
+
+            <!-- Header -->
+            <header class="bg-white shadow-sm px-8 py-4 flex justify-between items-center z-0">
+                <div>
+                    <h2 class="text-xl font-bold text-emerald-800" id="header-title">ផ្ទាំងព័ត៌មានរួម</h2>
+                    <p class="text-sm text-gray-500" id="header-subtitle">សូមជ្រើសរើសថ្នាក់</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="font-bold text-gray-800" id="current-date-display"></p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Scrollable Content Area -->
+            <div class="flex-1 overflow-y-auto p-8">
+                
+                <!-- 1. Dashboard -->
+                <div id="dashboard" class="tab-content active space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-emerald-600 flex items-center justify-between">
+                            <div><p class="text-gray-500 text-sm">សិស្សសរុប</p><h3 class="text-3xl font-bold text-emerald-800" id="dash-total">0</h3></div>
+                            <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 text-xl"><i class="fas fa-users"></i></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-pink-500 flex items-center justify-between">
+                            <div><p class="text-gray-500 text-sm">សិស្សស្រី</p><h3 class="text-3xl font-bold text-pink-600" id="dash-female">0</h3></div>
+                            <div class="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center text-pink-500 text-xl"><i class="fas fa-female"></i></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
+                            <div><p class="text-gray-500 text-sm">សិស្សប្រុស</p><h3 class="text-3xl font-bold text-blue-600" id="dash-male">0</h3></div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-500 text-xl"><i class="fas fa-male"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm">
+                            <h3 class="font-bold text-lg mb-4 text-emerald-800 border-b pb-2">វត្តមានថ្ងៃនេះ</h3>
+                            <div class="flex justify-around text-center">
+                                <div><p class="text-gray-500 mb-1">វត្តមាន</p><p class="text-2xl font-bold text-green-600" id="dash-att-p">0</p></div>
+                                <div><p class="text-gray-500 mb-1">ច្បាប់</p><p class="text-2xl font-bold text-yellow-500" id="dash-att-l">0</p></div>
+                                <div><p class="text-gray-500 mb-1">អវត្តមាន</p><p class="text-2xl font-bold text-red-600" id="dash-att-a">0</p></div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm">
+                            <h3 class="font-bold text-lg mb-4 text-emerald-800 border-b pb-2">គណៈកម្មការថ្នាក់</h3>
+                            <ul class="space-y-3">
+                                <li class="flex justify-between"><span class="text-gray-600">គ្រូបន្ទុកថ្នាក់៖</span> <span class="font-bold" id="dash-teacher">-</span></li>
+                                <li class="flex justify-between"><span class="text-gray-600">ប្រធានថ្នាក់៖</span> <span class="font-bold" id="dash-monitor">-</span></li>
+                                <li class="flex justify-between"><span class="text-gray-600">អនុប្រធានថ្នាក់៖</span> <span class="font-bold" id="dash-vicemonitor">-</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Student Management -->
+                <div id="students" class="tab-content space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-wrap gap-4 justify-between items-center">
+                        <div class="flex gap-4 w-full md:w-auto">
+                            <input type="text" id="student-search" placeholder="ស្វែងរកឈ្មោះ..." class="border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full md:w-64">
+                        </div>
+                        <div class="flex gap-3 w-full md:w-auto">
+                            <label class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-xl cursor-pointer hover:bg-emerald-200 transition font-bold">
+                                <i class="fas fa-file-excel mr-2"></i> ទាញចូល Excel
+                                <input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" onchange="importExcel(event)">
+                            </label>
+                            <button onclick="openModal('modal-add-student')" class="bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition font-bold shadow-md">
+                                <i class="fas fa-plus mr-2"></i> បន្ថែមសិស្ស
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-emerald-50 text-emerald-800">
+                                <tr>
+                                    <th class="p-4 border-b">ល.រ</th>
+                                    <th class="p-4 border-b">អត្តលេខ</th>
+                                    <th class="p-4 border-b">ឈ្មោះសិស្ស</th>
+                                    <th class="p-4 border-b">ភេទ</th>
+                                    <th class="p-4 border-b text-right">សកម្មភាព</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-table-body" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. Attendance -->
+                <div id="attendance" class="tab-content space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-wrap gap-4 justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <label class="font-bold text-gray-700">កាលបរិច្ឆេទ៖</label>
+                            <input type="date" id="att-date" class="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500" onchange="renderAttendance()">
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="markAllPresent()" class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-xl hover:bg-emerald-200 transition font-bold">
+                                <i class="fas fa-check-double mr-2"></i> វត្តមានទាំងអស់
+                            </button>
+                            <button onclick="saveAttendance()" class="bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition font-bold shadow-md">
+                                <i class="fas fa-save mr-2"></i> រក្សាទុក
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-emerald-50 text-emerald-800">
+                                <tr>
+                                    <th class="p-4 border-b w-16">ល.រ</th>
+                                    <th class="p-4 border-b">ឈ្មោះសិស្ស</th>
+                                    <th class="p-4 border-b w-24">ភេទ</th>
+                                    <th class="p-4 border-b text-center">វត្តមាន (P)</th>
+                                    <th class="p-4 border-b text-center">ច្បាប់ (L)</th>
+                                    <th class="p-4 border-b text-center">អវត្តមាន (A)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="att-table-body" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. Monthly Grades -->
+                <div id="monthly-grades" class="tab-content space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-wrap gap-4 justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <label class="font-bold text-gray-700">ជ្រើសរើសខែ៖</label>
+                            <select id="month-select" class="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500" onchange="renderMonthlyGrades()"></select>
+                        </div>
+                        <button onclick="saveMonthlyGrades()" class="bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition font-bold shadow-md">
+                            <i class="fas fa-save mr-2"></i> រក្សាទុកពិន្ទុ
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead class="bg-emerald-50 text-emerald-800">
+                                <tr>
+                                    <th class="p-4 border-b w-12">ល.រ</th>
+                                    <th class="p-4 border-b">ឈ្មោះសិស្ស</th>
+                                    <th class="p-4 border-b text-center">ភាសាខ្មែរ (10)</th>
+                                    <th class="p-4 border-b text-center">គណិតវិទ្យា (10)</th>
+                                    <th class="p-4 border-b text-center">វិទ្យាសាស្ត្រ (10)</th>
+                                    <th class="p-4 border-b text-center">សិក្សាសង្គម (10)</th>
+                                    <th class="p-4 border-b text-center bg-emerald-100">សរុប (40)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-table-body" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 5. Semester Exams -->
+                <div id="semester-grades" class="tab-content space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-wrap gap-4 justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <label class="font-bold text-gray-700">ជ្រើសរើសឆមាស៖</label>
+                            <select id="sem-select" class="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500" onchange="renderSemesterGrades()">
+                                <option value="sem1">ឆមាសទី១</option>
+                                <option value="sem2">ឆមាសទី២</option>
+                            </select>
+                        </div>
+                        <button onclick="saveSemesterGrades()" class="bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition font-bold shadow-md">
+                            <i class="fas fa-save mr-2"></i> រក្សាទុកពិន្ទុ
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead class="bg-emerald-50 text-emerald-800">
+                                <tr>
+                                    <th class="p-4 border-b w-12">ល.រ</th>
+                                    <th class="p-4 border-b">ឈ្មោះសិស្ស</th>
+                                    <th class="p-4 border-b text-center">ភាសាខ្មែរ (10)</th>
+                                    <th class="p-4 border-b text-center">គណិតវិទ្យា (10)</th>
+                                    <th class="p-4 border-b text-center">វិទ្យាសាស្ត្រ (10)</th>
+                                    <th class="p-4 border-b text-center">សិក្សាសង្គម (10)</th>
+                                    <th class="p-4 border-b text-center bg-emerald-100">សរុប (40)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="semester-table-body" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 6. Exam Builder -->
+                <div id="exam-builder" class="tab-content space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">ប្រភេទ</label>
+                            <select id="exam-type" class="w-full border border-gray-300 rounded-xl px-4 py-2" onchange="updateExamPeriodDropdown()">
+                                <option value="monthly">ប្រចាំខែ</option>
+                                <option value="semester">ប្រឡងឆមាស</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">កាលបរិច្ឆេទ</label>
+                            <select id="exam-period" class="w-full border border-gray-300 rounded-xl px-4 py-2" onchange="renderExamQuestions()"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">មុខវិជ្ជា</label>
+                            <select id="exam-subject" class="w-full border border-gray-300 rounded-xl px-4 py-2" onchange="renderExamQuestions()">
+                                <option value="khmer">ភាសាខ្មែរ</option>
+                                <option value="math">គណិតវិទ្យា</option>
+                                <option value="science">វិទ្យាសាស្ត្រ</option>
+                                <option value="social">សិក្សាសង្គម</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openModal('modal-add-question')" class="flex-1 bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition font-bold">
+                                <i class="fas fa-plus"></i> សំណួរ
+                            </button>
+                            <button onclick="printExamPaper()" class="flex-1 bg-gold-500 text-white px-4 py-2 rounded-xl hover:bg-gold-400 transition font-bold">
+                                <i class="fas fa-print"></i> បោះពុម្ព
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="font-bold text-lg text-emerald-800">បញ្ជីសំណួរ</h3>
+                            <span class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-bold" id="exam-total-score">ពិន្ទុសរុប៖ 0</span>
+                        </div>
+                        <div id="exam-questions-list" class="space-y-4"></div>
+                    </div>
+                </div>
+
+                <!-- 7. Reports & Results -->
+                <div id="reports" class="tab-content space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-wrap gap-4 justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <label class="font-bold text-gray-700">ជ្រើសរើសរបាយការណ៍៖</label>
+                            <select id="report-period" class="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500" onchange="renderReport()">
+                                <optgroup label="ប្រចាំខែ" id="report-opt-months"></optgroup>
+                                <optgroup label="ឆមាស និងប្រចាំឆ្នាំ">
+                                    <option value="sem1">ឆមាសទី១</option>
+                                    <option value="sem2">ឆមាសទី២</option>
+                                    <option value="annual">ប្រចាំឆ្នាំ</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <button onclick="printReport()" class="bg-gold-500 text-white px-4 py-2 rounded-xl hover:bg-gold-400 transition font-bold shadow-md">
+                            <i class="fas fa-print mr-2"></i> បោះពុម្ពរបាយការណ៍
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm text-center border-t-4 border-green-500">
+                            <p class="text-gray-500 text-sm">ជាប់ (>= 5.0)</p>
+                            <h3 class="text-2xl font-bold text-green-600" id="rep-pass">0</h3>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm text-center border-t-4 border-red-500">
+                            <p class="text-gray-500 text-sm">ធ្លាក់ (< 5.0)</p>
+                            <h3 class="text-2xl font-bold text-red-600" id="rep-fail">0</h3>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm text-center border-t-4 border-blue-500">
+                            <p class="text-gray-500 text-sm">ភាគរយជាប់</p>
+                            <h3 class="text-2xl font-bold text-blue-600" id="rep-rate">0%</h3>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm text-center border-t-4 border-gold-500">
+                            <p class="text-gray-500 text-sm">និទ្ទេស A</p>
+                            <h3 class="text-2xl font-bold text-gold-500" id="rep-gradeA">0</h3>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead class="bg-emerald-50 text-emerald-800">
+                                <tr>
+                                    <th class="p-4 border-b w-12">ចំណាត់ថ្នាក់</th>
+                                    <th class="p-4 border-b">ឈ្មោះសិស្ស</th>
+                                    <th class="p-4 border-b text-center">ភេទ</th>
+                                    <th class="p-4 border-b text-center">មធ្យមភាគ</th>
+                                    <th class="p-4 border-b text-center">និទ្ទេស</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-table-body" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 8. Settings -->
+                <div id="settings" class="tab-content space-y-6">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm max-w-2xl mx-auto">
+                        <h3 class="font-bold text-xl mb-6 text-emerald-800 border-b pb-2">រចនាសម្ព័ន្ធថ្នាក់ និងការកំណត់</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">ថ្នាក់ទី</label>
+                                <input type="text" id="set-grade" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">ឆ្នាំសិក្សា</label>
+                                <input type="text" id="set-year" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">ឈ្មោះគ្រូបន្ទុកថ្នាក់</label>
+                                <input type="text" id="set-teacher" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">ប្រធានថ្នាក់</label>
+                                <select id="set-monitor" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">អនុប្រធានថ្នាក់</label>
+                                <select id="set-vicemonitor" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500"></select>
+                            </div>
+                            <div class="pt-4 flex gap-4">
+                                <button onclick="saveSettings()" class="flex-1 bg-emerald-800 text-white px-4 py-3 rounded-xl hover:bg-emerald-700 transition font-bold shadow-md text-lg">
+                                    <i class="fas fa-save mr-2"></i> រក្សាទុកការកំណត់
+                                </button>
+                                <button id="btn-delete-class" onclick="deleteCurrentClass()" class="bg-red-100 text-red-600 px-4 py-3 rounded-xl hover:bg-red-200 transition font-bold shadow-md hidden">
+                                    <i class="fas fa-trash-alt mr-2"></i> លុបថ្នាក់នេះចោល
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 9. Accounts Management (Admin Only) -->
+                <div id="accounts" class="tab-content space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm flex justify-between items-center">
+                        <h3 class="font-bold text-xl text-emerald-800">គ្រប់គ្រងគណនីប្រើប្រាស់</h3>
+                        <button onclick="openModal('modal-add-user')" class="bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition font-bold shadow-md">
+                            <i class="fas fa-user-plus mr-2"></i> បន្ថែមគណនី
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-emerald-50 text-emerald-800">
+                                <tr>
+                                    <th class="p-4 border-b">ល.រ</th>
+                                    <th class="p-4 border-b">ឈ្មោះអ្នកប្រើ</th>
+                                    <th class="p-4 border-b">ឈ្មោះគណនី (Username)</th>
+                                    <th class="p-4 border-b">តួនាទី</th>
+                                    <th class="p-4 border-b text-right">សកម្មភាព</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+    
+    <!-- Add Class Modal -->
+    <div id="modal-add-class" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 no-print">
+        <div class="bg-white rounded-2xl shadow-xl w-96 p-6">
+            <h3 class="text-xl font-bold text-emerald-800 mb-4">បន្ថែមថ្នាក់រៀនថ្មី</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ថ្នាក់ទី (ឧ. ថ្នាក់ទី ១)</label>
+                    <input type="text" id="new-class-grade" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ឆ្នាំសិក្សា (ឧ. ២០២៥-២០២៦)</label>
+                    <input type="text" id="new-class-year" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">គ្រូបន្ទុកថ្នាក់</label>
+                    <input type="text" id="new-class-teacher" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeModal('modal-add-class')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-bold">បោះបង់</button>
+                <button onclick="addClass()" class="bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 font-bold">រក្សាទុក</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Student Modal -->
+    <div id="modal-add-student" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 no-print">
+        <div class="bg-white rounded-2xl shadow-xl w-96 p-6">
+            <h3 class="text-xl font-bold text-emerald-800 mb-4">បន្ថែមសិស្សថ្មី</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ឈ្មោះសិស្ស</label>
+                    <input type="text" id="new-student-name" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ភេទ</label>
+                    <select id="new-student-gender" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                        <option value="ប្រុស">ប្រុស</option>
+                        <option value="ស្រី">ស្រី</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeModal('modal-add-student')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-bold">បោះបង់</button>
+                <button onclick="addStudent()" class="bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 font-bold">រក្សាទុក</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Question Modal -->
+    <div id="modal-add-question" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 no-print">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+            <h3 class="text-xl font-bold text-emerald-800 mb-4">បន្ថែមសំណួរ</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ប្រភេទសំណួរ</label>
+                    <select id="q-type" class="w-full border border-gray-300 rounded-xl px-4 py-2" onchange="toggleQuestionOptions()">
+                        <option value="mcq">ពហុជ្រើសរើស (MCQ)</option>
+                        <option value="essay">សំនួរ-ចម្លើយ (Essay)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ខ្លឹមសារសំណួរ</label>
+                    <textarea id="q-text" rows="3" class="w-full border border-gray-300 rounded-xl px-4 py-2"></textarea>
+                </div>
+                <div id="q-options-container" class="space-y-2">
+                    <input type="text" id="q-opt-a" placeholder="ក." class="w-full border border-gray-300 rounded-xl px-4 py-2">
+                    <input type="text" id="q-opt-b" placeholder="ខ." class="w-full border border-gray-300 rounded-xl px-4 py-2">
+                    <input type="text" id="q-opt-c" placeholder="គ." class="w-full border border-gray-300 rounded-xl px-4 py-2">
+                    <input type="text" id="q-opt-d" placeholder="ឃ." class="w-full border border-gray-300 rounded-xl px-4 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ពិន្ទុ</label>
+                    <input type="number" id="q-score" value="1" min="0.5" step="0.5" class="w-full border border-gray-300 rounded-xl px-4 py-2">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeModal('modal-add-question')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-bold">បោះបង់</button>
+                <button onclick="saveQuestion()" class="bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 font-bold">រក្សាទុក</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="modal-add-user" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 no-print">
+        <div class="bg-white rounded-2xl shadow-xl w-96 p-6">
+            <h3 class="text-xl font-bold text-emerald-800 mb-4">បន្ថែមគណនីថ្មី</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ឈ្មោះអ្នកប្រើ (Name)</label>
+                    <input type="text" id="new-user-name" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ឈ្មោះគណនី (Username)</label>
+                    <input type="text" id="new-user-username" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">លេខសម្ងាត់ (Password)</label>
+                    <input type="password" id="new-user-password" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">តួនាទី (Role)</label>
+                    <select id="new-user-role" class="w-full border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-emerald-500">
+                        <option value="teacher">គ្រូបង្រៀន (Teacher)</option>
+                        <option value="admin">នាយកសាលា (Admin)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeModal('modal-add-user')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl font-bold">បោះបង់</button>
+                <button onclick="addUser()" class="bg-emerald-800 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 font-bold">រក្សាទុក</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-emerald-800 text-white px-6 py-3 rounded-xl shadow-lg opacity-0 pointer-events-none transform translate-y-4 z-50 flex items-center gap-3 font-bold">
+        <i class="fas fa-check-circle text-gold-400"></i>
+        <span id="toast-msg">ជោគជ័យ!</span>
+    </div>
+
+    <!-- ================= PRINT AREA ================= -->
+    <div id="print-area" class="print-area"></div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        // --- Data Schema & Initialization ---
+        const STORAGE_KEY = 'school_management_v12'; // Updated version for multi-class
+        
+        const months = [
+            { id: 'nov', name: 'វិច្ឆិកា', sem: 1 }, { id: 'dec', name: 'ធ្នូ', sem: 1 },
+            { id: 'jan', name: 'មករា', sem: 1 }, { id: 'feb', name: 'កុម្ភៈ', sem: 1 },
+            { id: 'mar', name: 'មីនា', sem: 1 }, { id: 'apr', name: 'មេសា', sem: 2 },
+            { id: 'may', name: 'ឧសភា', sem: 2 }, { id: 'jun', name: 'មិថុនា', sem: 2 },
+            { id: 'jul', name: 'កក្កដា', sem: 2 }, { id: 'aug', name: 'សីហា', sem: 2 }
+        ];
+
+        let schoolData = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        
+        if (!schoolData || !schoolData.users) {
+            schoolData = {
+                users: [
+                    { id: 'u1', name: 'អ្នកគ្រប់គ្រង', username: 'admin', password: '123', role: 'admin' },
+                    { id: 'u2', name: 'គ្រូ ស៊ុំ សំណាង', username: 'teacher', password: '123', role: 'teacher' }
+                ],
+                activeClassId: "class_grade6",
+                classes: {
+                    "class_grade6": {
+                        id: "class_grade6",
+                        classGrade: "ថ្នាក់ទី ៦",
+                        teacherName: "គ្រូ ស៊ុំ សំណាង",
+                        schoolYear: "២០២៥ - ២០២៦",
+                        monitor: "", viceMonitor: "",
+                        students: [], attendance: {}, monthlyGrades: {}, semesterGrades: {}, questionBank: {}
+                    }
+                }
+            };
+            saveData();
+        }
+
+        let currentUser = null;
+
+        function getActive() { 
+            return schoolData.activeClassId ? schoolData.classes[schoolData.activeClassId] : null; 
+        }
+        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(schoolData)); }
+
+        // --- Utility Functions ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            setTimeout(() => toast.classList.add('opacity-0', 'translate-y-4'), 3000);
+        }
+
+        function getLetter(score) {
+            if (score >= 9.0) return 'A'; if (score >= 8.0) return 'B';
+            if (score >= 6.5) return 'C'; if (score >= 5.0) return 'D'; return 'F';
+        }
+
+        function getTodayStr() { return new Date().toISOString().split('T')[0]; }
+
+        function openModal(id) {
+            document.querySelectorAll(`#${id} input, #${id} textarea`).forEach(el => el.value = '');
+            document.getElementById(id).classList.replace('hidden', 'flex');
+        }
+        function closeModal(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
+
+        // --- Authentication Logic ---
+        function checkLoginState() {
+            const sessionUser = sessionStorage.getItem('loggedInUser');
+            if (sessionUser) {
+                currentUser = JSON.parse(sessionUser);
+                showApp();
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('app-container').classList.add('hidden');
+            }
+        }
+
+        function handleLogin() {
+            const userInp = document.getElementById('login-username').value.trim();
+            const passInp = document.getElementById('login-password').value;
+            const errorMsg = document.getElementById('login-error');
+
+            const user = schoolData.users.find(u => u.username === userInp && u.password === passInp);
+            
+            if (user) {
+                currentUser = user;
+                sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+                errorMsg.classList.add('hidden');
+                showApp();
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.removeItem('loggedInUser');
+            currentUser = null;
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+        }
+
+        function showApp() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            
+            document.getElementById('current-user-name').innerText = currentUser.name;
+            document.getElementById('current-user-role').innerText = currentUser.role === 'admin' ? 'នាយកសាលា (Admin)' : 'គ្រូបង្រៀន (Teacher)';
+
+            const navAccounts = document.getElementById('nav-accounts');
+            const btnDeleteClass = document.getElementById('btn-delete-class');
+            if (currentUser.role === 'admin') {
+                navAccounts.classList.remove('hidden');
+                btnDeleteClass.classList.remove('hidden');
+            } else {
+                navAccounts.classList.add('hidden');
+                btnDeleteClass.classList.add('hidden');
+            }
+
+            initApp();
+        }
+
+        // --- Class Management Logic ---
+        function loadClassSelector() {
+            const sel = document.getElementById('class-selector');
+            sel.innerHTML = '';
+            const keys = Object.keys(schoolData.classes);
+            
+            if(keys.length === 0) {
+                sel.innerHTML = `<option value="">-- គ្មានថ្នាក់ --</option>`;
+                document.getElementById('no-class-overlay').classList.remove('hidden');
+                document.getElementById('header-subtitle').innerText = 'សូមបង្កើតថ្នាក់រៀនថ្មី';
+            } else {
+                document.getElementById('no-class-overlay').classList.add('hidden');
+                keys.forEach(key => {
+                    const c = schoolData.classes[key];
+                    sel.innerHTML += `<option value="${c.id}" ${schoolData.activeClassId === c.id ? 'selected' : ''}>${c.classGrade} (${c.schoolYear})</option>`;
+                });
+            }
+        }
+
+        function changeClass() {
+            const sel = document.getElementById('class-selector');
+            if(!sel.value) return;
+            schoolData.activeClassId = sel.value;
+            saveData();
+            
+            const active = getActive();
+            document.getElementById('header-subtitle').innerText = `${active.classGrade} | ឆ្នាំសិក្សា ${active.schoolYear}`;
+            
+            // Re-render current tab
+            const activeTab = document.querySelector('.tab-content.active').id;
+            switchTab(activeTab);
+        }
+
+        function addClass() {
+            const grade = document.getElementById('new-class-grade').value.trim();
+            const year = document.getElementById('new-class-year').value.trim();
+            const teacher = document.getElementById('new-class-teacher').value.trim();
+            
+            if(!grade || !year) return alert('សូមបញ្ចូលថ្នាក់ និងឆ្នាំសិក្សា');
+            
+            const newId = 'class_' + Date.now();
+            schoolData.classes[newId] = {
+                id: newId,
+                classGrade: grade,
+                teacherName: teacher,
+                schoolYear: year,
+                monitor: "", viceMonitor: "",
+                students: [], attendance: {}, monthlyGrades: {}, semesterGrades: {}, questionBank: {}
+            };
+            schoolData.activeClassId = newId;
+            saveData();
+            closeModal('modal-add-class');
+            loadClassSelector();
+            changeClass();
+            showToast('បានបន្ថែមថ្នាក់ថ្មីដោយជោគជ័យ');
+        }
+
+        function deleteCurrentClass() {
+            if(!confirm('តើអ្នកពិតជាចង់លុបថ្នាក់នេះ រួមទាំងទិន្នន័យសិស្ស និងពិន្ទុទាំងអស់មែនទេ? (មិនអាចទាញយកវិញបានទេ)')) return;
+            
+            delete schoolData.classes[schoolData.activeClassId];
+            const remainingKeys = Object.keys(schoolData.classes);
+            
+            if(remainingKeys.length > 0) {
+                schoolData.activeClassId = remainingKeys[0];
+            } else {
+                schoolData.activeClassId = null;
+            }
+            
+            saveData();
+            loadClassSelector();
+            if(schoolData.activeClassId) {
+                changeClass();
+            }
+            showToast('បានលុបថ្នាក់ដោយជោគជ័យ');
+        }
+
+        // --- Navigation & UI Setup ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('bg-emerald-900', 'text-gold-400', 'font-bold');
+            });
+            const activeBtn = document.querySelector(`.nav-btn[data-target="${tabId}"]`);
+            if(activeBtn) activeBtn.classList.add('bg-emerald-900', 'text-gold-400', 'font-bold');
+
+            const titles = {
+                'dashboard': 'ផ្ទាំងព័ត៌មានរួម', 'students': 'បញ្ជីឈ្មោះសិស្ស',
+                'attendance': 'វត្តមានប្រចាំថ្ងៃ', 'monthly-grades': 'ពិន្ទុប្រចាំខែ',
+                'semester-grades': 'ពិន្ទុប្រឡងឆមាស', 'exam-builder': 'បង្កើតវិញ្ញាសាប្រឡង',
+                'reports': 'របាយការណ៍ និងលទ្ធផល', 'settings': 'រចនាសម្ព័ន្ធថ្នាក់',
+                'accounts': 'គ្រប់គ្រងគណនីប្រើប្រាស់'
+            };
+            document.getElementById('header-title').innerText = titles[tabId];
+
+            if(tabId === 'dashboard') renderDashboard();
+            if(tabId === 'students') renderStudents();
+            if(tabId === 'attendance') renderAttendance();
+            if(tabId === 'monthly-grades') renderMonthlyGrades();
+            if(tabId === 'semester-grades') renderSemesterGrades();
+            if(tabId === 'exam-builder') { updateExamPeriodDropdown(); renderExamQuestions(); }
+            if(tabId === 'reports') renderReport();
+            if(tabId === 'settings') renderSettings();
+            if(tabId === 'accounts') renderAccounts();
+        }
+
+        function initApp() {
+            loadClassSelector();
+            
+            const active = getActive();
+            if(active) {
+                document.getElementById('header-subtitle').innerText = `${active.classGrade} | ឆ្នាំសិក្សា ${active.schoolYear}`;
+            }
+            
+            const d = new Date();
+            const khmerDays = ['អាទិត្យ','ច័ន្ទ','អង្គារ','ពុធ','ព្រហស្បតិ៍','សុក្រ','សៅរ៍'];
+            document.getElementById('current-date-display').innerText = `ថ្ងៃ${khmerDays[d.getDay()]} ទី${d.getDate()} ខែ${d.getMonth()+1} ឆ្នាំ${d.getFullYear()}`;
+
+            const mSelect = document.getElementById('month-select');
+            const rOptMonths = document.getElementById('report-opt-months');
+            if(mSelect.options.length === 0) {
+                months.forEach(m => {
+                    mSelect.innerHTML += `<option value="${m.id}">${m.name}</option>`;
+                    rOptMonths.innerHTML += `<option value="${m.id}">ខែ${m.name}</option>`;
+                });
+            }
+
+            document.getElementById('att-date').value = getTodayStr();
+            document.getElementById('student-search').addEventListener('input', renderStudents);
+
+            switchTab('dashboard');
+        }
+
+        // --- 1. Dashboard ---
+        function renderDashboard() {
+            const active = getActive();
+            if(!active) return;
+            const students = active.students;
+            document.getElementById('dash-total').innerText = students.length;
+            document.getElementById('dash-female').innerText = students.filter(s => s.gender === 'ស្រី').length;
+            document.getElementById('dash-male').innerText = students.filter(s => s.gender === 'ប្រុស').length;
+
+            const today = getTodayStr();
+            const att = active.attendance[today] || {};
+            let p=0, l=0, a=0;
+            Object.values(att).forEach(v => { if(v==='P') p++; if(v==='L') l++; if(v==='A') a++; });
+            document.getElementById('dash-att-p').innerText = p;
+            document.getElementById('dash-att-l').innerText = l;
+            document.getElementById('dash-att-a').innerText = a;
+
+            document.getElementById('dash-teacher').innerText = active.teacherName || '-';
+            const mon = students.find(s => s.id === active.monitor);
+            const vmon = students.find(s => s.id === active.viceMonitor);
+            document.getElementById('dash-monitor').innerText = mon ? mon.nameKh : '-';
+            document.getElementById('dash-vicemonitor').innerText = vmon ? vmon.nameKh : '-';
+        }
+
+        // --- 2. Student Management ---
+        function renderStudents() {
+            const active = getActive();
+            if(!active) return;
+            const search = document.getElementById('student-search').value.toLowerCase();
+            const tbody = document.getElementById('student-table-body');
+            tbody.innerHTML = '';
+
+            active.students.filter(s => s.nameKh.toLowerCase().includes(search)).forEach((s, index) => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4 border-b">${index + 1}</td>
+                        <td class="p-4 border-b text-gray-500">${s.id}</td>
+                        <td class="p-4 border-b font-bold">${s.nameKh}</td>
+                        <td class="p-4 border-b">${s.gender}</td>
+                        <td class="p-4 border-b text-right">
+                            <button onclick="deleteStudent('${s.id}')" class="text-red-500 hover:text-red-700 p-2"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function addStudent() {
+            const active = getActive();
+            if(!active) return alert('សូមបង្កើតថ្នាក់ជាមុនសិន');
+            const name = document.getElementById('new-student-name').value.trim();
+            const gender = document.getElementById('new-student-gender').value;
+            if(!name) return alert('សូមបញ្ចូលឈ្មោះសិស្ស');
+
+            const newId = 'S' + Date.now().toString().slice(-6);
+            active.students.push({ id: newId, nameKh: name, gender: gender });
+            saveData();
+            closeModal('modal-add-student');
+            renderStudents();
+            showToast('បានបន្ថែមសិស្សដោយជោគជ័យ');
+        }
+
+        function deleteStudent(id) {
+            if(!confirm('តើអ្នកពិតជាចង់លុបសិស្សនេះមែនទេ?')) return;
+            const active = getActive();
+            active.students = active.students.filter(s => s.id !== id);
+            saveData();
+            renderStudents();
+            showToast('បានលុបសិស្សដោយជោគជ័យ');
+        }
+
+        function importExcel(e) {
+            const active = getActive();
+            if(!active) return alert('សូមបង្កើតថ្នាក់ជាមុនសិន');
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                try {
+                    const data = evt.target.result;
+                    const wb = XLSX.read(data, {type: 'binary'});
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(ws, {header: 1});
+                    
+                    let added = 0;
+                    for(let i=1; i<json.length; i++) {
+                        const row = json[i];
+                        if(row && row[0]) {
+                            const name = row[0].toString().trim();
+                            const gender = (row[1] && row[1].toString().trim() === 'ស្រី') ? 'ស្រី' : 'ប្រុស';
+                            active.students.push({ id: 'S' + Date.now().toString().slice(-6) + i, nameKh: name, gender: gender });
+                            added++;
+                        }
+                    }
+                    saveData();
+                    renderStudents();
+                    showToast(`បានទាញចូលសិស្សចំនួន ${added} នាក់`);
+                } catch(err) {
+                    alert('មានបញ្ហាក្នុងការអានឯកសារ Excel។ សូមពិនិត្យទម្រង់ឯកសារ។');
+                }
+            };
+            reader.readAsBinaryString(file);
+            e.target.value = '';
+        }
+
+        // --- 3. Attendance ---
+        function renderAttendance() {
+            const active = getActive();
+            if(!active) return;
+            const date = document.getElementById('att-date').value;
+            if(!active.attendance[date]) active.attendance[date] = {};
+            const att = active.attendance[date];
+            
+            const tbody = document.getElementById('att-table-body');
+            tbody.innerHTML = '';
+
+            active.students.forEach((s, i) => {
+                const status = att[s.id] || '';
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4 border-b">${i+1}</td>
+                        <td class="p-4 border-b font-bold">${s.nameKh}</td>
+                        <td class="p-4 border-b">${s.gender}</td>
+                        <td class="p-4 border-b text-center"><input type="radio" name="att_${s.id}" value="P" ${status==='P'?'checked':''} class="w-5 h-5 text-green-600"></td>
+                        <td class="p-4 border-b text-center"><input type="radio" name="att_${s.id}" value="L" ${status==='L'?'checked':''} class="w-5 h-5 text-yellow-500"></td>
+                        <td class="p-4 border-b text-center"><input type="radio" name="att_${s.id}" value="A" ${status==='A'?'checked':''} class="w-5 h-5 text-red-600"></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function markAllPresent() {
+            const active = getActive();
+            if(!active) return;
+            active.students.forEach(s => {
+                const radio = document.querySelector(`input[name="att_${s.id}"][value="P"]`);
+                if(radio) radio.checked = true;
+            });
+        }
+
+        function saveAttendance() {
+            const active = getActive();
+            if(!active) return;
+            const date = document.getElementById('att-date').value;
+            active.attendance[date] = {};
+            
+            active.students.forEach(s => {
+                const checked = document.querySelector(`input[name="att_${s.id}"]:checked`);
+                if(checked) active.attendance[date][s.id] = checked.value;
+            });
+            saveData();
+            showToast('បានរក្សាទុកវត្តមាន');
+        }
+
+        // --- 4 & 5. Grades ---
+        function attachGradeListeners(tableId) {
+            document.querySelectorAll(`#${tableId} .g-input`).forEach(inp => {
+                inp.addEventListener('input', function() {
+                    const tr = this.closest('tr');
+                    let sum = 0;
+                    tr.querySelectorAll('.g-input').forEach(i => sum += Number(i.value)||0);
+                    tr.querySelector('.g-total').innerText = sum > 0 ? sum.toFixed(2) : '';
+                });
+            });
+        }
+
+        function renderMonthlyGrades() {
+            const active = getActive();
+            if(!active) return;
+            const month = document.getElementById('month-select').value;
+            if(!active.monthlyGrades[month]) active.monthlyGrades[month] = {};
+            const grades = active.monthlyGrades[month];
+            const tbody = document.getElementById('monthly-table-body');
+            tbody.innerHTML = '';
+
+            active.students.forEach((s, i) => {
+                const g = grades[s.id] || { khmer:'', math:'', science:'', social:'' };
+                const total = (Number(g.khmer)||0) + (Number(g.math)||0) + (Number(g.science)||0) + (Number(g.social)||0);
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50" data-sid="${s.id}">
+                        <td class="p-4 border-b">${i+1}</td>
+                        <td class="p-4 border-b font-bold">${s.nameKh}</td>
+                        <td class="p-4 border-b text-center"><input type="number" min="0" max="10" step="0.1" class="g-input w-16 border rounded px-2 py-1 text-center" value="${g.khmer}"></td>
+                        <td class="p-4 border-b text-center"><input type="number" min="0" max="10" step="0.1" class="g-input w-16 border rounded px-2 py-1 text-center" value="${g.math}"></td>
+                        <td class="p-4 border-b text-center"><input type="number" min="0" max="10" step="0.1" class="g-input w-16 border rounded px-2 py-1 text-center" value="${g.science}"></td>
+                        <td class="p-4 border-b text-center"><input type="number" min="0" max="10" step="0.1" class="g-input w-16 border rounded px-2 py-1 text-center" value="${g.social}"></td>
+                        <td class="p-4 border-b text-center font-bold bg-emerald-50 g-total">${total ? total.toFixed(2) : ''}</td>
+                    </tr>
+                `;
+            });
+            attachGradeListeners('monthly-table-body');
+        }
+
+        function saveMonthlyGrades() {
+            const active = getActive();
+            if(!active) return;
+            const month = document.getElementById('month-select').value;
+            active.monthlyGrades[month] = {};
+            document.querySelectorAll('#monthly-table-body tr').forEach(tr => {
+                const sid = tr.getAttribute('data-sid');
+                const inputs = tr.querySelectorAll('.g-input');
+                active.monthlyGrades[month][sid] = { khmer: inputs[0].value, math: inputs[1].value, science: inputs[2].value, social: inputs[3].value };
+            });
+            saveData();
+            showToast('បានរក្សាទុកពិន្ទុប្រចាំខែ');
+        }
+
+        function renderSemesterGrades() {
+            const active = getActive();
+            if(!active) return;
+            const sem = document.getElementById('sem-select').value;
+            if(!active.semesterGrades[sem]) active.semesterGrades[sem] = {};
+            const grades = active.semesterGrades[sem];
+            const tbody = document.getElementById('semester-table-body');
+            tbody.innerHTML = '';
+
+            active.students.forEach((s, i) => {
+                const g = grades[s.id] || { khmer:'', math:'', science:'', social:'' };
+                const total = (Number(g.khmer)||0) + (Number(g.math)||0) + (Number(g.science)||0) + (Number(g.social)||0);
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50" data-sid="${s.id}">
+                        <td class="p-4 border-b">${i+1}</td>
+                        <td class="p-4 border-b font-bold">${s.nameKh}</td>
+                        <td class="p-4 border-b text-center"><input type="number" min="0" max="10" step="0.1" class="g-input w-16 border rounded px-2 py-1 text-center" value="${g.khmer}"></td>
+                        <td class="p-4 border-b text-center"><input type="number" min="0" max="10" step="0.1" class="g-input w-16 border rounded px-2 py-1 text-center" value="${g.math}"></td>
+                        <td class="p-4 border-b text-center"><input type="number" min="0" max="10" step="0.1" class="g-input w-16 border rounded px-2 py-1 text-center" value="${g.science}"></td>
+                        <td class="p-4 border-b text-center"><input type="number" min="0" max="10" step="0.1" class="g-input w-16 border rounded px-2 py-1 text-center" value="${g.social}"></td>
+                        <td class="p-4 border-b text-center font-bold bg-emerald-50 g-total">${total ? total.toFixed(2) : ''}</td>
+                    </tr>
+                `;
+            });
+            attachGradeListeners('semester-table-body');
+        }
+
+        function saveSemesterGrades() {
+            const active = getActive();
+            if(!active) return;
+            const sem = document.getElementById('sem-select').value;
+            active.semesterGrades[sem] = {};
+            document.querySelectorAll('#semester-table-body tr').forEach(tr => {
+                const sid = tr.getAttribute('data-sid');
+                const inputs = tr.querySelectorAll('.g-input');
+                active.semesterGrades[sem][sid] = { khmer: inputs[0].value, math: inputs[1].value, science: inputs[2].value, social: inputs[3].value };
+            });
+            saveData();
+            showToast('បានរក្សាទុកពិន្ទុប្រឡងឆមាស');
+        }
+
+        // --- 6. Exam Builder ---
+        function updateExamPeriodDropdown() {
+            const type = document.getElementById('exam-type').value;
+            const periodSel = document.getElementById('exam-period');
+            periodSel.innerHTML = '';
+            if(type === 'monthly') {
+                months.forEach(m => periodSel.innerHTML += `<option value="${m.id}">ខែ${m.name}</option>`);
+            } else {
+                periodSel.innerHTML = `<option value="sem1">ឆមាសទី១</option><option value="sem2">ឆមាសទី២</option>`;
+            }
+            renderExamQuestions();
+        }
+
+        function getExamKey() {
+            return `${document.getElementById('exam-type').value}_${document.getElementById('exam-period').value}_${document.getElementById('exam-subject').value}`;
+        }
+
+        function renderExamQuestions() {
+            const active = getActive();
+            if(!active) return;
+            const key = getExamKey();
+            const qList = active.questionBank[key] || [];
+            const container = document.getElementById('exam-questions-list');
+            container.innerHTML = '';
+            
+            let totalScore = 0;
+            if(qList.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">មិនទាន់មានសំណួរនៅឡើយទេ</p>';
+            } else {
+                qList.forEach((q, i) => {
+                    totalScore += Number(q.score);
+                    let optsHtml = '';
+                    if(q.type === 'mcq') {
+                        optsHtml = `<div class="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-600">
+                            <div>ក. ${q.options[0]}</div><div>ខ. ${q.options[1]}</div>
+                            <div>គ. ${q.options[2]}</div><div>ឃ. ${q.options[3]}</div>
+                        </div>`;
+                    }
+                    container.innerHTML += `
+                        <div class="border border-gray-200 rounded-xl p-4 relative hover:shadow-md transition bg-gray-50">
+                            <button onclick="deleteQuestion('${key}', '${q.id}')" class="absolute top-4 right-4 text-red-400 hover:text-red-600"><i class="fas fa-times"></i></button>
+                            <div class="flex gap-2">
+                                <span class="font-bold text-emerald-800">${i+1}.</span>
+                                <div class="flex-1">
+                                    <p class="font-bold text-gray-800">${q.text} <span class="text-emerald-600 text-sm ml-2">(${q.score} ពិន្ទុ)</span></p>
+                                    ${optsHtml}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('exam-total-score').innerText = `ពិន្ទុសរុប៖ ${totalScore}`;
+        }
+
+        function toggleQuestionOptions() {
+            document.getElementById('q-options-container').style.display = document.getElementById('q-type').value === 'mcq' ? 'block' : 'none';
+        }
+
+        function saveQuestion() {
+            const active = getActive();
+            if(!active) return alert('សូមបង្កើតថ្នាក់ជាមុនសិន');
+            const key = getExamKey();
+            if(!active.questionBank[key]) active.questionBank[key] = [];
+            
+            const type = document.getElementById('q-type').value;
+            const text = document.getElementById('q-text').value.trim();
+            const score = document.getElementById('q-score').value;
+            if(!text) return alert('សូមបញ្ចូលខ្លឹមសារសំណួរ');
+
+            const q = { id: 'Q'+Date.now(), type, text, score };
+            if(type === 'mcq') {
+                q.options = [
+                    document.getElementById('q-opt-a').value, document.getElementById('q-opt-b').value,
+                    document.getElementById('q-opt-c').value, document.getElementById('q-opt-d').value
+                ];
+            }
+
+            active.questionBank[key].push(q);
+            saveData();
+            closeModal('modal-add-question');
+            renderExamQuestions();
+        }
+
+        function deleteQuestion(key, qId) {
+            const active = getActive();
+            active.questionBank[key] = active.questionBank[key].filter(q => q.id !== qId);
+            saveData();
+            renderExamQuestions();
+        }
+
+        function printExamPaper() {
+            const active = getActive();
+            if(!active) return;
+            const key = getExamKey();
+            const qList = active.questionBank[key] || [];
+            if(qList.length === 0) return alert('សូមបញ្ចូលសំណួរជាមុនសិន');
+
+            const periodSel = document.getElementById('exam-period');
+            const subSel = document.getElementById('exam-subject');
+            
+            let html = `
+                <div class="print-area font-sans p-8">
+                    <div class="text-center font-moul mb-8">
+                        <h2 class="text-xl">ព្រះរាជាណាចក្រកម្ពុជា</h2>
+                        <h2 class="text-xl mt-2">ជាតិ សាសនា ព្រះមហាក្សត្រ</h2>
+                    </div>
+                    <div class="flex justify-between items-start mb-8">
+                        <div class="space-y-2 text-lg">
+                            <p>សាលា៖ <b>សាលាបឋមសិក្សាសហគមន៍ច្បារជ្រោះ</b></p>
+                            <p>ថ្នាក់ទី៖ <b>${active.classGrade}</b></p>
+                            <p>ឈ្មោះសិស្ស៖ ........................................................</p>
+                        </div>
+                        <div class="border-2 border-black p-4 w-32 text-center h-24 flex flex-col justify-between">
+                            <p class="font-bold">ពិន្ទុ</p><p></p>
+                        </div>
+                    </div>
+                    <div class="text-center font-bold text-xl mb-8">
+                        <h3>វិញ្ញាសាប្រឡង៖ ${subSel.options[subSel.selectedIndex].text} (${periodSel.options[periodSel.selectedIndex].text})</h3>
+                    </div>
+                    <div class="space-y-6 text-lg">
+            `;
+
+            qList.forEach((q, i) => {
+                html += `<div class="print-break-inside-avoid"><p class="font-bold">${i+1}. ${q.text} (${q.score} ពិន្ទុ)</p>`;
+                if(q.type === 'mcq') {
+                    html += `<div class="grid grid-cols-2 gap-4 mt-3 ml-6">
+                        <div>ក. ${q.options[0]}</div><div>ខ. ${q.options[1]}</div>
+                        <div>គ. ${q.options[2]}</div><div>ឃ. ${q.options[3]}</div>
+                    </div>`;
+                } else {
+                    html += `<div class="mt-4 border-b border-dotted border-gray-400 h-8 w-full"></div><div class="mt-4 border-b border-dotted border-gray-400 h-8 w-full"></div>`;
+                }
+                html += `</div>`;
+            });
+
+            html += `</div></div>`;
+            document.getElementById('print-area').innerHTML = html;
+            window.print();
+        }
+
+        // --- 7. Reports & Results ---
+        function calculateStudentResult(sid, period) {
+            const active = getActive();
+            const getAvg = (g) => g ? ((Number(g.khmer)||0) + (Number(g.math)||0) + (Number(g.science)||0) + (Number(g.social)||0)) / 4 : 0;
+
+            if(months.find(m => m.id === period)) {
+                return getAvg(active.monthlyGrades[period] ? active.monthlyGrades[period][sid] : null);
+            } else if(period === 'sem1' || period === 'sem2') {
+                const semMonths = months.filter(m => m.sem === (period==='sem1'?1:2));
+                let sumMonthAvgs = 0;
+                semMonths.forEach(m => sumMonthAvgs += getAvg(active.monthlyGrades[m.id] ? active.monthlyGrades[m.id][sid] : null));
+                const monthlyAvg = sumMonthAvgs / 5;
+                const examAvg = getAvg(active.semesterGrades[period] ? active.semesterGrades[period][sid] : null);
+                return (monthlyAvg + examAvg) / 2;
+            } else if(period === 'annual') {
+                return (calculateStudentResult(sid, 'sem1') + calculateStudentResult(sid, 'sem2')) / 2;
+            }
+            return 0;
+        }
+
+        function renderReport() {
+            const active = getActive();
+            if(!active) return;
+            const period = document.getElementById('report-period').value;
+            
+            let results = active.students.map(s => ({ ...s, avg: calculateStudentResult(s.id, period) })).sort((a, b) => b.avg - a.avg);
+            const tbody = document.getElementById('report-table-body');
+            tbody.innerHTML = '';
+
+            let pass=0, fail=0, gradeA=0;
+
+            results.forEach((r, i) => {
+                const letter = getLetter(r.avg);
+                if(r.avg >= 5.0) pass++; else fail++;
+                if(letter === 'A') gradeA++;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4 border-b text-center font-bold text-emerald-800">${i+1}</td>
+                        <td class="p-4 border-b font-bold">${r.nameKh}</td>
+                        <td class="p-4 border-b text-center">${r.gender}</td>
+                        <td class="p-4 border-b text-center font-bold">${r.avg.toFixed(2)}</td>
+                        <td class="p-4 border-b text-center font-bold ${letter==='F'?'text-red-500':'text-emerald-600'}">${letter}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('rep-pass').innerText = pass;
+            document.getElementById('rep-fail').innerText = fail;
+            document.getElementById('rep-rate').innerText = (results.length > 0 ? ((pass/results.length)*100).toFixed(1) : 0) + '%';
+            document.getElementById('rep-gradeA').innerText = gradeA;
+        }
+
+        function printReport() {
+            const active = getActive();
+            if(!active) return;
+            const periodSel = document.getElementById('report-period');
+            const period = periodSel.value;
+            let results = active.students.map(s => ({ ...s, avg: calculateStudentResult(s.id, period) })).sort((a, b) => b.avg - a.avg);
+
+            let rowsHtml = '';
+            results.forEach((r, i) => {
+                rowsHtml += `<tr><td>${i+1}</td><td style="text-align:left; padding-left:10px;">${r.nameKh}</td><td>${r.gender}</td><td>${r.avg.toFixed(2)}</td><td>${getLetter(r.avg)}</td></tr>`;
+            });
+
+            let html = `
+                <div class="print-area font-sans p-8">
+                    <div class="text-center font-moul mb-6">
+                        <h2 class="text-xl">ព្រះរាជាណាចក្រកម្ពុជា</h2>
+                        <h2 class="text-xl mt-2">ជាតិ សាសនា ព្រះមហាក្សត្រ</h2>
+                    </div>
+                    <div class="mb-6 text-lg">
+                        <p>សាលា៖ <b>សាលាបឋមសិក្សាសហគមន៍ច្បារជ្រោះ</b></p>
+                        <p>ថ្នាក់ទី៖ <b>${active.classGrade}</b> | ឆ្នាំសិក្សា៖ <b>${active.schoolYear}</b></p>
+                    </div>
+                    <div class="text-center font-bold text-xl mb-6">
+                        <h3>បញ្ជីរាយនាមសិស្ស និងលទ្ធផលសិក្សា (${periodSel.options[periodSel.selectedIndex].text})</h3>
+                    </div>
+                    <table class="mb-8 text-lg">
+                        <thead><tr style="background-color:#f3f4f6;"><th>ចំណាត់ថ្នាក់</th><th>ឈ្មោះសិស្ស</th><th>ភេទ</th><th>មធ្យមភាគ</th><th>និទ្ទេស</th></tr></thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                    <div class="flex justify-between mt-12 text-lg">
+                        <div class="text-center"><p>បានឃើញ និងឯកភាព</p><p class="font-bold mt-2">នាយកសាលា</p></div>
+                        <div class="text-center"><p>ថ្ងៃ................ខែ................ឆ្នាំ................</p><p class="font-bold mt-2">គ្រូបន្ទុកថ្នាក់</p><p class="mt-16">${active.teacherName}</p></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('print-area').innerHTML = html;
+            window.print();
+        }
+
+        // --- 8. Settings ---
+        function renderSettings() {
+            const active = getActive();
+            if(!active) return;
+            document.getElementById('set-grade').value = active.classGrade || '';
+            document.getElementById('set-year').value = active.schoolYear || '';
+            document.getElementById('set-teacher').value = active.teacherName || '';
+
+            const monSel = document.getElementById('set-monitor');
+            const vmonSel = document.getElementById('set-vicemonitor');
+            monSel.innerHTML = '<option value="">-- ជ្រើសរើស --</option>';
+            vmonSel.innerHTML = '<option value="">-- ជ្រើសរើស --</option>';
+
+            active.students.forEach(s => {
+                monSel.innerHTML += `<option value="${s.id}" ${active.monitor===s.id?'selected':''}>${s.nameKh}</option>`;
+                vmonSel.innerHTML += `<option value="${s.id}" ${active.viceMonitor===s.id?'selected':''}>${s.nameKh}</option>`;
+            });
+        }
+
+        function saveSettings() {
+            const active = getActive();
+            if(!active) return;
+            active.classGrade = document.getElementById('set-grade').value;
+            active.schoolYear = document.getElementById('set-year').value;
+            active.teacherName = document.getElementById('set-teacher').value;
+            active.monitor = document.getElementById('set-monitor').value;
+            active.viceMonitor = document.getElementById('set-vicemonitor').value;
+            
+            saveData();
+            document.getElementById('header-subtitle').innerText = `${active.classGrade} | ឆ្នាំសិក្សា ${active.schoolYear}`;
+            loadClassSelector(); // Update dropdown text
+            showToast('បានរក្សាទុកការកំណត់');
+        }
+
+        // --- 9. Accounts Management ---
+        function renderAccounts() {
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+
+            schoolData.users.forEach((u, index) => {
+                const roleBadge = u.role === 'admin' 
+                    ? '<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">នាយកសាលា</span>'
+                    : '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">គ្រូបង្រៀន</span>';
+                
+                const deleteBtn = u.id !== currentUser.id 
+                    ? `<button onclick="deleteUser('${u.id}')" class="text-red-500 hover:text-red-700 p-2"><i class="fas fa-trash"></i></button>`
+                    : `<span class="text-gray-400 text-xs">គណនីរបស់អ្នក</span>`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4 border-b">${index + 1}</td>
+                        <td class="p-4 border-b font-bold">${u.name}</td>
+                        <td class="p-4 border-b text-gray-600">${u.username}</td>
+                        <td class="p-4 border-b">${roleBadge}</td>
+                        <td class="p-4 border-b text-right">${deleteBtn}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function addUser() {
+            const name = document.getElementById('new-user-name').value.trim();
+            const username = document.getElementById('new-user-username').value.trim();
+            const pass = document.getElementById('new-user-password').value;
+            const role = document.getElementById('new-user-role').value;
+
+            if(!name || !username || !pass) return alert('សូមបំពេញព័ត៌មានឲ្យបានគ្រប់គ្រាន់');
+            
+            if(schoolData.users.find(u => u.username === username)) {
+                return alert('ឈ្មោះគណនីនេះមានរួចហើយ សូមជ្រើសរើសឈ្មោះផ្សេង');
+            }
+
+            const newUser = { id: 'U' + Date.now(), name: name, username: username, password: pass, role: role };
+            schoolData.users.push(newUser);
+            saveData();
+            closeModal('modal-add-user');
+            renderAccounts();
+            showToast('បានបន្ថែមគណនីដោយជោគជ័យ');
+        }
+
+        function deleteUser(id) {
+            if(!confirm('តើអ្នកពិតជាចង់លុបគណនីនេះមែនទេ?')) return;
+            schoolData.users = schoolData.users.filter(u => u.id !== id);
+            saveData();
+            renderAccounts();
+            showToast('បានលុបគណនីដោយជោគជ័យ');
+        }
+
+        // Initialize App on Load
+        window.onload = checkLoginState;
+
+    </script>
+</body>
+</html>
